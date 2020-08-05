@@ -1,38 +1,93 @@
+import 'package:audioplayers/audio_cache.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
 import 'package:flutter_statusbarcolor/flutter_statusbarcolor.dart';
-
 import 'package:fluttertoast/fluttertoast.dart';
 
-void main() => runApp(VideoApp());
+typedef void OnError(Exception exception);
 
-class VideoApp extends StatefulWidget {
-  VideoApp() : super();
-
-  final String title = "Video App";
-  @override
-  _VideoAppState createState() => _VideoAppState();
+void main() {
+  runApp(
+      new MaterialApp(debugShowCheckedModeBanner: false, home: LocalAudio()));
 }
 
-class _VideoAppState extends State<VideoApp> {
-  VideoPlayerController _controller;
-  Future<void> _intializeVideoPlayerFuture;
+class LocalAudio extends StatefulWidget {
+  @override
+  _LocalAudio createState() => _LocalAudio();
+}
+
+class _LocalAudio extends State<LocalAudio> {
+  Duration _duration = new Duration();
+  Duration _position = new Duration();
+  AudioPlayer advancedPlayer;
+  AudioCache audioCache;
 
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.asset(
-      "assets/benduvideo.mp4",
-    );
-    _intializeVideoPlayerFuture = _controller.initialize();
-    _controller.setLooping(true);
-    super.initState();
+    initPlayer();
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  void initPlayer() {
+    advancedPlayer = new AudioPlayer();
+    audioCache = new AudioCache(fixedPlayer: advancedPlayer);
+
+    advancedPlayer.durationHandler = (d) => setState(() {
+          _duration = d;
+        });
+
+    advancedPlayer.positionHandler = (p) => setState(() {
+          _position = p;
+        });
+  }
+
+  String localFilePath;
+
+  Widget _tab(List<Widget> children) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        Container(
+          padding: EdgeInsets.all(16.0),
+          child: Column(
+            children: children
+                .map((w) => Container(child: w, padding: EdgeInsets.all(6.0)))
+                .toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _btn(String txt, VoidCallback onPressed) {
+    return ButtonTheme(
+      minWidth: 48.0,
+      child: Container(
+        width: 150,
+        height: 45,
+        child: RaisedButton(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+            child: Text(txt),
+            color: Colors.orange[900],
+            textColor: Colors.white,
+            onPressed: onPressed),
+      ),
+    );
+  }
+
+  Widget LocalAudio() {
+    return _tab([
+      _btn('Play', () => audioCache.play('bendusong.wav')),
+      _btn('Pause', () => advancedPlayer.pause()),
+      _btn('Stop', () => advancedPlayer.stop()),
+    ]);
+  }
+
+  void seekToSecond(int second) {
+    Duration newDuration = Duration(seconds: second);
+
+    advancedPlayer.seek(newDuration);
   }
 
   @override
@@ -40,140 +95,31 @@ class _VideoAppState extends State<VideoApp> {
     FlutterStatusbarcolor.setStatusBarColor(Colors.amber);
     ti() {
       Fluttertoast.showToast(
-        msg: "List is loading",
+        msg: "add the pic",
         gravity: ToastGravity.BOTTOM_LEFT,
         fontSize: 20.0,
-        textColor: Colors.black87,
+        textColor: Colors.red,
         toastLength: Toast.LENGTH_SHORT,
       );
     }
 
-    t2() {
-      Fluttertoast.showToast(
-        msg: "power off",
-        gravity: ToastGravity.BOTTOM_LEFT,
-        fontSize: 20.0,
-        textColor: Colors.black87,
-        toastLength: Toast.LENGTH_SHORT,
-      );
-    }
-
-    var appBar2 = AppBar(
-      leading: IconButton(icon: Icon(Icons.list), onPressed: ti),
-      actions: <Widget>[
-        IconButton(icon: Icon(Icons.settings_power), onPressed: t2)
-      ],
-      title: Text(" video app"),
-      backgroundColor: Colors.red.shade500,
-    );
-    return MaterialApp(
-      home: Scaffold(
-        appBar: appBar2,
-        body: Center(
-          child: Container(
-            height: 400,
-            width: 300,
-            margin: EdgeInsets.all(30),
-            color: Colors.red,
-            child: Container(
-              height: 200,
-              width: 150,
-              color: Colors.amber,
-              margin: EdgeInsets.all(20),
-              child: Column(
-                children: <Widget>[
-                  Container(
-                    height: 200,
-                    width: 300,
-                    child: FutureBuilder(
-                        future: _intializeVideoPlayerFuture,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.done) {
-                            return AspectRatio(
-                              aspectRatio: _controller.value.aspectRatio,
-                              child: VideoPlayer(_controller),
-                            );
-                          } else {
-                            return Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          }
-                        }),
-                  ),
-                  //slider(),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      RaisedButton(
-                        shape: new RoundedRectangleBorder(
-                            borderRadius: new BorderRadius.circular(30.0)),
-                        padding: EdgeInsets.only(
-                            top: 7.0, bottom: 7.0, right: 40.0, left: 7.0),
-                        onPressed: () {
-                          setState(() {
-                            if (_controller.value.isPlaying) {
-                              _controller.pause();
-                            } else {
-                              _controller.play();
-                            }
-                          });
-                        },
-                        child: Text(
-                          "       Pause",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontSize: 20,
-                              fontStyle: FontStyle.italic,
-                              color: Colors.black54),
-                        ),
-                      ),
-                      RaisedButton(
-                        shape: new RoundedRectangleBorder(
-                            borderRadius: new BorderRadius.circular(30.0)),
-                        padding: EdgeInsets.only(
-                            top: 7.0, bottom: 7.0, right: 40.0, left: 7.0),
-                        onPressed: () {
-                          setState(() {
-                            _controller.play();
-                          });
-                        },
-                        child: Text(
-                          "        Play",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontSize: 20,
-                              fontStyle: FontStyle.italic,
-                              color: Colors.black54),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
+    return DefaultTabController(
+      length: 1,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          leading: IconButton(icon: Icon(Icons.toc), onPressed: ti),
+          elevation: 1.0,
+          actions: <Widget>[
+            IconButton(icon: Icon(Icons.settings_power), onPressed: ti),
+          ],
+          backgroundColor: Colors.pink,
+          title: Center(child: Text(' songs zone')),
         ),
-        backgroundColor: Colors.grey.shade300,
-        /*FutureBuilder(
-          future: _intializeVideoPlayerFuture,
-          builder: (context, snapshot){
-            if (snapshot.connectionState == ConnectionState.done)
-            {
-              return AspectRatio(
-                aspectRatio: _controller.value.aspectRatio,
-                child: VideoPlayer(_controller),
-                );
-            }
-            else{
-              return Center(
-                child: CircularProgressIndicator(),
-              );
-            }
-          }
-      ),*/
+        body: TabBarView(
+          children: [LocalAudio()],
+        ),
       ),
-      debugShowCheckedModeBanner: false,
     );
   }
 }
