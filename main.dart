@@ -1,125 +1,136 @@
-import 'package:audioplayers/audio_cache.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_statusbarcolor/flutter_statusbarcolor.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart' as http;
 
-typedef void OnError(Exception exception);
-
-void main() {
-  runApp(
-      new MaterialApp(debugShowCheckedModeBanner: false, home: LocalAudio()));
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(Bendu());
 }
 
-class LocalAudio extends StatefulWidget {
+class Bendu extends StatefulWidget {
   @override
-  _LocalAudio createState() => _LocalAudio();
+  _BenduState createState() => _BenduState();
 }
 
-class _LocalAudio extends State<LocalAudio> {
-  Duration _duration = new Duration();
-  Duration _position = new Duration();
-  AudioPlayer advancedPlayer;
-  AudioCache audioCache;
+class _BenduState extends State<Bendu> {
+  var fsc = FirebaseFirestore.instance;
+  String x;
+  var data;
+  myweb(cmd) async {
+    print(cmd);
+    var url = "http://192.168.0.105/cgi-bin/output1.py?x=${cmd}";
+    var r = await http.get(url);
+    // var sc = r.statusCode;
+    setState(() {
+      data = r.body;
+    });
 
-  @override
-  void initState() {
-    super.initState();
-    initPlayer();
+    var d = fsc.collection("output").add({
+      x: data,
+    });
+
+    print(data);
   }
 
-  void initPlayer() {
-    advancedPlayer = new AudioPlayer();
-    audioCache = new AudioCache(fixedPlayer: advancedPlayer);
-
-    advancedPlayer.durationHandler = (d) => setState(() {
-          _duration = d;
-        });
-
-    advancedPlayer.positionHandler = (p) => setState(() {
-          _position = p;
-        });
-  }
-
-  String localFilePath;
-
-  Widget _tab(List<Widget> children) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: <Widget>[
-        Container(
-          padding: EdgeInsets.all(16.0),
-          child: Column(
-            children: children
-                .map((w) => Container(child: w, padding: EdgeInsets.all(6.0)))
-                .toList(),
+  mybody() {
+    return Container(
+      decoration: BoxDecoration(
+          color: Colors.amber,
+          image: DecorationImage(
+              image: AssetImage("images/firebase.png"), fit: BoxFit.fill)),
+      child: Center(
+        child: Container(
+          margin: EdgeInsets.all(20),
+          //color: Colors.amber,
+          height: 250,
+          width: 250,
+          //decoration: BoxDecoration(
+          //  color: Colors.amber,
+          // image: DecorationImage(
+          //   image: AssetImage("images/bendumain.png"), fit: BoxFit.fill)),
+          child: Center(
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              height: 700,
+              width: 300,
+              color: Colors.transparent,
+              child: Column(
+                children: <Widget>[
+                  Card(
+                      child: TextField(
+                    autocorrect: false,
+                    textAlign: TextAlign.center,
+                    decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: "CHECK COMMAND ",
+                        hoverColor: Colors.blue,
+                        prefixIcon: Icon(Icons.tablet_android)),
+                    onChanged: (val) {
+                      x = val;
+                      // print(val);
+                    },
+                  )),
+                  Card(
+                    child: FlatButton(
+                        onPressed: () {
+                          // print(x);
+                          myweb(x);
+                        },
+                        child: Text(
+                          "CHECK THE OUTPUT",
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10),
+                        )),
+                  ),
+                  Container(
+                    height: 50,
+                    width: 200,
+                    margin: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        gradient: LinearGradient(colors: [
+                          Colors.red[900],
+                          Colors.purple[600],
+                          Colors.deepPurple[900],
+                        ])),
+                    child: Text(
+                      data ?? "output is coming",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10),
+                    ),
+                  )
+                ],
+              ),
+            ),
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _btn(String txt, VoidCallback onPressed) {
-    return ButtonTheme(
-      minWidth: 48.0,
-      child: Container(
-        width: 150,
-        height: 45,
-        child: RaisedButton(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-            child: Text(txt),
-            color: Colors.orange[900],
-            textColor: Colors.white,
-            onPressed: onPressed),
       ),
     );
-  }
-
-  Widget LocalAudio() {
-    return _tab([
-      _btn('Play', () => audioCache.play('bendusong.wav')),
-      _btn('Pause', () => advancedPlayer.pause()),
-      _btn('Stop', () => advancedPlayer.stop()),
-    ]);
-  }
-
-  void seekToSecond(int second) {
-    Duration newDuration = Duration(seconds: second);
-
-    advancedPlayer.seek(newDuration);
   }
 
   @override
   Widget build(BuildContext context) {
-    FlutterStatusbarcolor.setStatusBarColor(Colors.amber);
-    ti() {
-      Fluttertoast.showToast(
-        msg: "add the pic",
-        gravity: ToastGravity.BOTTOM_LEFT,
-        fontSize: 20.0,
-        textColor: Colors.red,
-        toastLength: Toast.LENGTH_SHORT,
-      );
-    }
-
-    return DefaultTabController(
-      length: 1,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          leading: IconButton(icon: Icon(Icons.toc), onPressed: ti),
-          elevation: 1.0,
-          actions: <Widget>[
-            IconButton(icon: Icon(Icons.settings_power), onPressed: ti),
-          ],
-          backgroundColor: Colors.pink,
-          title: Center(child: Text(' songs zone')),
+    return MaterialApp(
+        home: Scaffold(
+      appBar: AppBar(
+        leading: Image.asset("images/firebase.png"),
+        actions: <Widget>[Icon(Icons.home)],
+        title: Center(
+          child: Text(
+            "Linux App",
+            style: TextStyle(
+                color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20),
+          ),
         ),
-        body: TabBarView(
-          children: [LocalAudio()],
-        ),
+        backgroundColor: Colors.deepPurpleAccent,
       ),
-    );
+      body: mybody(),
+    ));
   }
 }
